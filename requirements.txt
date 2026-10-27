@@ -1,0 +1,2 @@
+selenium>=4.35.0,<5
+requests>=2.32.0,<3

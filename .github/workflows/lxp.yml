@@ -1,0 +1,82 @@
+name: KAU LXP
+
+on:
+
+  # 직접 실행
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "실행 모드"
+        required: true
+        default: "check"
+        type: choice
+        options:
+          - check
+          - autoplay
+
+  # 매주 화요일 00:10 KST
+  # = 월요일 15:10 UTC
+  schedule:
+    - cron: "10 15 * * 1"
+
+
+jobs:
+
+  lxp:
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 360
+
+    env:
+
+      KAU_ID: ${{ secrets.KAU_ID }}
+      KAU_PASSWORD: ${{ secrets.KAU_PASSWORD }}
+
+      TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+      LXP_SELECTED_COURSES: ${{ vars.LXP_SELECTED_COURSES }}
+
+      # 예약 실행이면 항상 check
+      # 직접 실행이면 선택한 mode 사용
+      LXP_MODE: ${{ github.event_name == 'schedule' && 'check' || inputs.mode }}
+
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+
+      - name: Check Chrome
+        run: |
+          google-chrome --version || google-chrome-stable --version
+
+
+      - name: Run KAU LXP
+        run: |
+          python -u lxp.py
+
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lxp-result
+          path: |
+            playing_*.png
+            lxp_error.png
+          if-no-files-found: ignore
