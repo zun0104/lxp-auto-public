@@ -1,8 +1,7 @@
+
 name: KAU LXP
 
 on:
-
-  # 직접 실행
   workflow_dispatch:
     inputs:
       mode:
@@ -15,62 +14,70 @@ on:
           - autoplay
 
   # 매주 화요일 00:10 KST
-  # = 월요일 15:10 UTC
   schedule:
     - cron: "10 15 * * 1"
 
+permissions:
+  contents: read
 
 jobs:
-
   lxp:
-
     runs-on: ubuntu-latest
-
     timeout-minutes: 360
 
     env:
-
       KAU_ID: ${{ secrets.KAU_ID }}
       KAU_PASSWORD: ${{ secrets.KAU_PASSWORD }}
-
       TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-
       LXP_SELECTED_COURSES: ${{ vars.LXP_SELECTED_COURSES }}
-
-      # 예약 실행이면 항상 check
-      # 직접 실행이면 선택한 mode 사용
       LXP_MODE: ${{ github.event_name == 'schedule' && 'check' || inputs.mode }}
 
-
     steps:
-
+      # 자신의 저장소 가져오기
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 다른 사용자만 최신 공개 코드 가져오기
+      - name: Fetch latest public code
+        if: github.repository != 'zun0104/lxp-auto' && github.repository != 'zun0104/lxp-auto-public'
+        uses: actions/checkout@v4
+        with:
+          repository: zun0104/lxp-auto-public
+          ref: main
+          path: upstream
+          persist-credentials: false
 
+      # 사용자별 설정은 유지하고 공통 코드만 교체
+      - name: Apply latest public code
+        if: github.repository != 'zun0104/lxp-auto' && github.repository != 'zun0104/lxp-auto-public'
+        run: |
+          cp upstream/lxp.py ./lxp.py
+          cp upstream/requirements.txt ./requirements.txt
+
+      # Python 설정
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-
+      # 라이브러리 설치
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-
+      # Chrome 확인
       - name: Check Chrome
         run: |
           google-chrome --version || google-chrome-stable --version
 
-
+      # LXP 실행
       - name: Run KAU LXP
         run: |
           python -u lxp.py
 
-
+      # 실행 결과 저장
       - name: Upload screenshots
         if: always()
         uses: actions/upload-artifact@v4
