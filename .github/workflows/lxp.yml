@@ -38,23 +38,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 다른 사용자만 최신 공개 코드 가져오기
-      - name: Fetch latest public code
-        if: github.repository != 'zun0104/lxp-auto' && github.repository != 'zun0104/lxp-auto-public'
-        uses: actions/checkout@v4
-        with:
-          repository: zun0104/lxp-auto-public
-          ref: main
-          path: upstream
-          persist-credentials: false
-
-      # 사용자별 설정은 유지하고 공통 코드만 교체
-      - name: Apply latest public code
-        if: github.repository != 'zun0104/lxp-auto' && github.repository != 'zun0104/lxp-auto-public'
-        run: |
-          cp upstream/lxp.py ./lxp.py
-          cp upstream/requirements.txt ./requirements.txt
-
       # Python 설정
       - name: Set up Python
         uses: actions/setup-python@v5
